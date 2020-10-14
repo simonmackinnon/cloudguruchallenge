@@ -7,7 +7,7 @@ Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
 Outputs:
-    BucketArn:
+    BucketName:
       Value: !Ref S3Bucket
       Description: S3 Bucket for storing function package(s)
       Export: 
