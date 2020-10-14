@@ -21,7 +21,6 @@ def setupLogger(loggerLevel):
         level=loggerLevel,
         datefmt='%d-%m-%Y %H:%M:%S')
     
-
 def getRemoteFile(url, name):
     if not os.path.exists('download/'):
         logger.info('Making dir: download/')
@@ -35,22 +34,15 @@ def getRemoteFile(url, name):
     csv_file.close()
     return csv_file.name
             
-def mergeCsvData(usaCovidDataFilename, johnHopkinsRecoveryDataFilename):
-    logger.info('Merging: ' + usaCovidDataFilename + ' and: ' + johnHopkinsRecoveryDataFilename)
-    usaCovidData = pandas.read_csv(usaCovidDataFilename) 
-    johnHopkinsData = pandas.read_csv(johnHopkinsRecoveryDataFilename)
-    mergedData = transform.mergeCsvData(usaCovidData, johnHopkinsData)
-    return(mergedData)
-
 def cleanupFiles(directory):
     logger.info('Cleaning up: ' + directory)
     shutil.rmtree(directory)
 
-def table_is_empty(response):
+def tableIsEmpty(response):
     return response['Count'] == 0
     
 def getLatestRecordDate(response):
-    if not table_is_empty(response):
+    if not tableIsEmpty(response):
         items = response['Items']
         items.sort(key=lambda x: x['date'], reverse=True)
         logger.info('latest date entered in DB: {}'.format(items[0]['date']))
@@ -75,10 +67,10 @@ def main(args):
         logger.info('Starting...')
         usaCovidDataFilename = getRemoteFile(usaCovidDataUrl, 'usaCovidData')
         johnHopkinsRecoveryDataFilename = getRemoteFile(johnHopkinsDataUrl, 'johnHopkinsData')
-        mergedData = mergeCsvData(usaCovidDataFilename, johnHopkinsRecoveryDataFilename)
+        mergedData = transform.mergeCsvFiles(usaCovidDataFilename, johnHopkinsRecoveryDataFilename)
         scanResponse = getTableScanResponse('covidData', dynamodb_resource)
         latestDate = getLatestRecordDate(scanResponse)
-        intialLoad = table_is_empty(scanResponse)
+        intialLoad = tableIsEmpty(scanResponse)
         load.load_data(mergedData, latestDate, dynamodb_resource, intialLoad)
         logger.debug(mergedData.tail())
         logger.info('Done!')

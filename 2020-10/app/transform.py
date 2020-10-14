@@ -11,10 +11,16 @@ logging.basicConfig(
     level=logging.INFO,
     datefmt='%d-%m-%Y %H:%M:%S')
 
+def mergeCsvFiles(usaCovidDataFilename, johnHopkinsRecoveryDataFilename):
+    logger.info('Merging: ' + usaCovidDataFilename + ' and: ' + johnHopkinsRecoveryDataFilename)
+    usaCovidData = pandas.read_csv(usaCovidDataFilename) 
+    johnHopkinsData = pandas.read_csv(johnHopkinsRecoveryDataFilename)
+    return(mergeCsvData(usaCovidData, johnHopkinsData))
+
 def mergeCsvData(usaCovidData, johnHopkinsData):
     logger.info('Merging usaCovidData and johnHopkinsData')
     usaJohnHopkinsData = filterForUsaData(johnHopkinsData)
-    mergedData = mergeData(usaCovidData, usaJohnHopkinsData)
+    mergedData = mergeData(usaCovidData, johnHopkinsData)
     mergedSelectedData = selectColumns(mergedData)
     return(mergedSelectedData)
     

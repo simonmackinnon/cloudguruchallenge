@@ -88,7 +88,7 @@ def validateDate(date_text):
     try:
         datetime.strptime(date_text, '%Y-%m-%d')
         return(True)
-    except ValueError:
+    except:
         logger.exception("Incorrect data format, should be YYYY-MM-DD")
         return(False)
         
@@ -96,8 +96,8 @@ def validateNumber(input):
     try:
        val = int(input)
        return(True)
-    except ValueError:
-       logger.exception("Incorrect data format, expected number input, got {}".format(input))
+    except:
+       logger.exception("Incorrect data format, expected number input")
        return(False)
     
     
