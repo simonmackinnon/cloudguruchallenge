@@ -18,6 +18,8 @@ Resources:
         ReadCapacityUnits: 5
         WriteCapacityUnits: 5
       TableName: "covidData"
+      StreamSpecification: 
+        StreamViewType: NEW_IMAGE
   WriteCapacityScalableTarget:
     Type: AWS::ApplicationAutoScaling::ScalableTarget
     Properties:
@@ -200,3 +202,16 @@ Outputs:
     Value: !Ref CovidDataLoadFunction
     Export: 
       Name: !Sub ${EnvironmentName}:CovidDataLoadFunction
+  DDBTable:
+    Description: DynamoDB table with COVID data in it
+    Value: !Ref DDBTable
+    Export: 
+      Name: !Sub ${EnvironmentName}:CovidDDBTable
+  DDBTableStreamArn:
+    Description: DynamoDB stream ARN
+    Value: !GetAtt 
+               - DDBTable
+               - StreamArn
+    Export: 
+      Name: !Sub ${EnvironmentName}:CovidDDBTableStreamArn
+    

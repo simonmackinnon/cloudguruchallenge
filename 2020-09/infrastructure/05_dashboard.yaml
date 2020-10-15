@@ -1,0 +1,153 @@
+Parameters:
+  EnvironmentName:
+    Type: String
+    Default: CovidDataLoader
+Resources:
+  dumpS3Bucket:
+    Type: 'AWS::S3::Bucket'
+    Properties: 
+      PublicAccessBlockConfiguration: 
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+  firehoseDeliveryStream:
+    DependsOn:
+      - deliveryPolicy
+    Type: 'AWS::KinesisFirehose::DeliveryStream'
+    Properties:
+      DeliveryStreamName: 
+        Fn::ImportValue: !Sub ${EnvironmentName}:CovidDDBTable
+      ExtendedS3DestinationConfiguration:
+        BucketARN: !Join 
+          - ''
+          - - 'arn:aws:s3:::'
+            - !Ref dumpS3Bucket
+        BufferingHints:
+          IntervalInSeconds: '60'
+          SizeInMBs: '1'
+        CompressionFormat: UNCOMPRESSED
+        Prefix: firehose/
+        RoleARN: !GetAtt deliveryRole.Arn
+  deliveryRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: firehose.amazonaws.com
+            Action: 'sts:AssumeRole'
+            Condition:
+              StringEquals:
+                'sts:ExternalId': !Ref 'AWS::AccountId'
+  deliveryPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Managed policy for firehose 
+      Roles: 
+        - !Ref deliveryRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 's3:AbortMultipartUpload'
+              - 's3:GetBucketLocation'
+              - 's3:GetObject'
+              - 's3:ListBucket'
+              - 's3:ListBucketMultipartUploads'
+              - 's3:PutObject'
+            Resource:
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref dumpS3Bucket
+              - !Join 
+                - ''
+                - - 'arn:aws:s3:::'
+                  - !Ref dumpS3Bucket
+                  - '*'
+  lambdaExecutionRole:
+    Type: AWS::IAM::Role
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Sid: ''
+            Effect: Allow
+            Principal:
+              Service: lambda.amazonaws.com
+            Action: 'sts:AssumeRole'
+  ddbToFirehose: 
+      Type: "AWS::Lambda::Function"
+      Properties: 
+        Handler: "ddb-to-firehose.lambda_handler"
+        Role: 
+          Fn::GetAtt: 
+            - "lambdaExecutionRole"
+            - "Arn"
+        Code: 
+          S3Bucket: 
+            Fn::ImportValue: !Sub ${EnvironmentName}:coreinf-functionbucket
+          S3Key: "ddb-to-firehose.zip"
+        Runtime: "python3.6"
+        Timeout: "25"
+        Environment:
+          Variables:
+            DeliveryStreamName: 
+              Fn::ImportValue: !Sub ${EnvironmentName}:CovidDDBTable
+  logGroup:
+    Type: "AWS::Logs::LogGroup"
+    Properties:
+      LogGroupName: !Sub "/aws/lambda/${ddbToFirehose}"
+  lambdaExecutionPolicy:
+    Type: 'AWS::IAM::ManagedPolicy'
+    Properties:
+      Description: Managed policy for lambda function 
+      Roles: 
+        - !Ref lambdaExecutionRole
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Action:
+              - 'firehose:PutRecord'
+              - 'firehose:PutRecordBatch'
+              - 'firehose:UpdateDestination'
+            Resource: !GetAtt 
+               - firehoseDeliveryStream
+               - Arn
+          - Effect: Allow
+            Action:
+              - 'logs:CreateLogStream'
+              - 'logs:PutLogEvents'
+            Resource:
+              - !Sub "arn:aws:logs:${AWS::Region}:${AWS::AccountId}:log-group:${logGroup}:*"
+          - Effect: Allow
+            Action:
+              - 'dynamodb:DescribeStream'
+              - 'dynamodb:GetRecords'
+              - 'dynamodb:GetShardIterator'
+              - 'dynamodb:ListStreams'
+            Resource: 
+              Fn::ImportValue: !Sub ${EnvironmentName}:CovidDDBTableStreamArn
+  EventSourceMapping: 
+    Type: "AWS::Lambda::EventSourceMapping"
+    DependsOn:
+      - lambdaExecutionPolicy
+    Properties: 
+      EventSourceArn: 
+        Fn::ImportValue: !Sub ${EnvironmentName}:CovidDDBTableStreamArn
+      FunctionName: !GetAtt
+        - ddbToFirehose
+        - Arn
+      StartingPosition: "TRIM_HORIZON"
+Outputs:
+  ddbToFirehoseFunction:
+    Description: Lambda function that loads the DynamoDB data to firehose an dumps to S3
+    Value: !Ref ddbToFirehose
+    Export: 
+      Name: !Sub ${EnvironmentName}:ddbToFirehoseFunction

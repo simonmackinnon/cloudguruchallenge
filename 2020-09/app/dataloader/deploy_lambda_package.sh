@@ -1,4 +1,3 @@
-rm -rf package
 rm -rf v-env
 rm -f CovidDataFunction.zip
 
@@ -20,6 +19,5 @@ aws lambda update-function-code \
 --s3-key CovidDataFunction.zip \
 --publish
 
-rm -rf package
 rm -rf v-env
 rm -f CovidDataFunction.zip

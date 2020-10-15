@@ -32,6 +32,6 @@ def mergeData(usaCovidData, usaJohnHopkinsData):
     return(mergedData)
     
 def selectColumns(data):
-    selectedData = data[["date", "cases", "deaths", 'Country/Region', "Recovered"]]
+    selectedData = data[["date", "cases", "deaths", "Recovered"]]
     selectedData.rename(columns={'Recovered': 'recovered'}, inplace=True)
     return(selectedData)
