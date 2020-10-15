@@ -46,14 +46,19 @@ def load_data(data, latestDateStr, dynamodb=None, initial=False):
     if initial == True:
         logger.info("loading initial data")
         rows_added=0
+        error_reading = False
         for index, row, in data.iterrows():
             if validateRow(row):
                 put_record(row['date'], row['cases'], row['deaths'], row['recovered'], dynamodb)
                 rows_added += 1
             else:
-                notify.notify("Error reading data", "There was an reading data. Got {}".format(row))
+                error_reading = True
         if rows_added > 0:        
             notify.notify("Inital Data Load Successful. Added {} rows".format(rows_added), "Inital load of Covid Data into DB was successful. {} rows were added".format(rows_added))
+            
+        if error_reading:
+            logger.info("Error reading data. Got {}".format(data))
+            notify.notify("Error reading data", "There was an reading data. Got {}".format(data))
     else:
         latestDate = datetime.strptime(latestDateStr, '%Y-%m-%d').date()
         check_date = latestDate + timedelta(days=1)

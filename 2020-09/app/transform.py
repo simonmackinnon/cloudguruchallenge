@@ -20,7 +20,7 @@ def mergeCsvFiles(usaCovidDataFilename, johnHopkinsRecoveryDataFilename):
 def mergeCsvData(usaCovidData, johnHopkinsData):
     logger.info('Merging usaCovidData and johnHopkinsData')
     usaJohnHopkinsData = filterForUsaData(johnHopkinsData)
-    mergedData = mergeData(usaCovidData, johnHopkinsData)
+    mergedData = mergeData(usaCovidData, usaJohnHopkinsData)
     mergedSelectedData = selectColumns(mergedData)
     return(mergedSelectedData)
     
@@ -32,6 +32,6 @@ def mergeData(usaCovidData, usaJohnHopkinsData):
     return(mergedData)
     
 def selectColumns(data):
-    selectedData = data[["date", "cases", "deaths", "Recovered"]]
+    selectedData = data[["date", "cases", "deaths", 'Country/Region', "Recovered"]]
     selectedData.rename(columns={'Recovered': 'recovered'}, inplace=True)
     return(selectedData)

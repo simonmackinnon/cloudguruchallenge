@@ -106,7 +106,7 @@ Resources:
       ReservedConcurrentExecutions: 1
       Role: !GetAtt LambdaExecutionRole.Arn
       Runtime: 'python3.6'
-      Timeout: 60
+      Timeout: 240
       TracingConfig:
         Mode: Active
       VpcConfig:
@@ -115,6 +115,12 @@ Resources:
         SubnetIds:
           - Fn::ImportValue: !Sub ${EnvironmentName}:PrivateSubnet1
           - Fn::ImportValue: !Sub ${EnvironmentName}:PrivateSubnet2
+      Environment:
+        Variables:
+          LOGGER_LEVEL: INFO
+          JOHN_HOPKINS_DATA_URL: https://raw.githubusercontent.com/datasets/covid-19/master/data/time-series-19-covid-combined.csv?opt_id=oeu1601336451462r0.5279466816848477
+          USA_COVID_DATA_URL: https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv
+          SNS_TOPIC: arn:aws:sns:ap-southeast-2:955966247963:SNSTopic-core-infrastructure-covid-app
   LambdaExecutionRole:
     Type: AWS::IAM::Role
     Properties:
@@ -189,3 +195,8 @@ Outputs:
     Value: !Ref SNSTopic
     Export: 
       Name: !Sub ${EnvironmentName}:SNSTopic
+  CovidDataLoadFunction:
+    Description: Lambda function that loads the COVID data into DynamoDB
+    Value: !Ref CovidDataLoadFunction
+    Export: 
+      Name: !Sub ${EnvironmentName}:CovidDataLoadFunction

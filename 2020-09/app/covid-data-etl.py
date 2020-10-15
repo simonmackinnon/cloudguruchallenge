@@ -22,14 +22,14 @@ def setupLogger(loggerLevel):
         datefmt='%d-%m-%Y %H:%M:%S')
     
 def getRemoteFile(url, name):
-    if not os.path.exists('download/'):
-        logger.info('Making dir: download/')
-        os.makedirs('download/')
+    if not os.path.exists('/tmp/download/'):
+        logger.info('Making dir: /tmp/download/')
+        os.makedirs('/tmp/download/')
     
     logger.info('downloading: ' + url)
     response = requests.get(url)
     content = response.content
-    csv_file = open('download/'+name+'.csv', 'wb')
+    csv_file = open('/tmp/download/'+name+'.csv', 'wb')
     csv_file.write(content)
     csv_file.close()
     return csv_file.name
@@ -56,9 +56,9 @@ def getTableScanResponse(table_name, dynamodb_resource):
     return response
 
 def main(args):
-    usaCovidDataUrl = args.usaCovidDataUrl
-    johnHopkinsDataUrl = args.johnHopkinsDataUrl
-    loggerLevel = logging.__dict__[args.loggerLevel]
+    usaCovidDataUrl = args['usaCovidDataUrl']
+    johnHopkinsDataUrl = args['johnHopkinsDataUrl']
+    loggerLevel = logging.__dict__[args['loggerLevel']]
     
     dynamodb_resource = boto3.resource('dynamodb', region_name='ap-southeast-2')
     
@@ -72,26 +72,28 @@ def main(args):
         latestDate = getLatestRecordDate(scanResponse)
         intialLoad = tableIsEmpty(scanResponse)
         load.load_data(mergedData, latestDate, dynamodb_resource, intialLoad)
-        logger.debug(mergedData.tail())
         logger.info('Done!')
     except:
         logger.exception('Error in processing!')
     finally:
-        if os.path.isdir('download/'):
-            cleanupFiles('download/')
+        if os.path.isdir('/tmp/download/'):
+            cleanupFiles('/tmp/download/')
  
 def event_handler(event, context):
-    args = {}
-    args.loggerLevel = os.environ['LOGGER_LEVEL'] if os.environ['LOGGER_LEVEL'] else 'INFO'
-    args.usaCovidDataUrl = os.environ['USA_COVID_DATA_URL'] if os.environ['USA_COVID_DATA_URL'] else "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
-    args.johnHopkinsDataUrl = os.environ['JOHN_HOPKINS_DATA_URL'] if os.environ['JOHN_HOPKINS_DATA_URL'] else "https://raw.githubusercontent.com/datasets/covid-19/master/data/time-series-19-covid-combined.csv?opt_id=oeu1601336451462r0.5279466816848477"
+    args = dict()
+    args['loggerLevel'] = os.environ['LOGGER_LEVEL'] if os.environ['LOGGER_LEVEL'] else 'INFO'
+    args['usaCovidDataUrl'] = os.environ['USA_COVID_DATA_URL'] if os.environ['USA_COVID_DATA_URL'] else "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+    args['johnHopkinsDataUrl'] = os.environ['JOHN_HOPKINS_DATA_URL'] if os.environ['JOHN_HOPKINS_DATA_URL'] else "https://raw.githubusercontent.com/datasets/covid-19/master/data/time-series-19-covid-combined.csv?opt_id=oeu1601336451462r0.5279466816848477"
+    
+    logger.info('Args: {}'.format(args))
+    
     main(args)      
         
 if __name__ == '__main__':
-    parser = argparse.ArgumentParser(description='perform ETL on some USA covid data')
-    parser.add_argument('--loggerLevel', help='set the logger level', required=False, default='INFO')
-    parser.add_argument('--usaCovidDataUrl', help='url of the covid data', required=False, default="https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv")
-    parser.add_argument('--johnHopkinsDataUrl', help='url of the JH data', required=False, default="https://raw.githubusercontent.com/datasets/covid-19/master/data/time-series-19-covid-combined.csv?opt_id=oeu1601336451462r0.5279466816848477")
-    args = parser.parse_args()
+    args = dict()
+    args['loggerLevel'] = 'INFO'
+    args['usaCovidDataUrl'] = "https://raw.githubusercontent.com/nytimes/covid-19-data/master/us.csv"
+    args['johnHopkinsDataUrl'] = "https://raw.githubusercontent.com/datasets/covid-19/master/data/time-series-19-covid-combined.csv?opt_id=oeu1601336451462r0.5279466816848477"
+    
     main(args)
 
