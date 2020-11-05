@@ -14,7 +14,7 @@ function compare( a, b ) {
 
 var ctx = document.getElementById('myChart').getContext('2d');
   
-fetch("https://7vmx7x6mwg.execute-api.ap-southeast-2.amazonaws.com/live/cumulativedata", {
+fetch("https://2tp0wsvdr2.execute-api.ap-southeast-2.amazonaws.com/live/cumulativedata", {
   "headers": {},
   "referrer": "",
   "referrerPolicy": "no-referrer-when-downgrade",
